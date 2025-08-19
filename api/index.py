@@ -1,17 +1,17 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from Constructor.NewDeviceObject import Producto
-from Constructor.CreateTeamObject import Team, TeamMember
-from Constructor.CreateUserObject import User
-from Constructor.UploadCloudinary import upload_image
+from NewDeviceObject import Producto
+from CreateTeamObject import Team, TeamMember
+from CreateUserObject import User
+from UploadCloudinary import upload_image
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import uuid
 import certifi
 from datetime import datetime
-from Analytics.CO2Analytics import CalculateCO2
-from Analytics.CO2AnalyticsperDev import CalculateCO2forDevice
-from Analytics.WattsAnalytics import calculateWatts
+from CO2Analytics import CalculateCO2
+from CO2AnalyticsperDev import CalculateCO2forDevice
+from WattsAnalytics import calculateWatts
 import math
 import os
 # Inicializar app
