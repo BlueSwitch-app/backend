@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from Constructor.NewDeviceObject import Producto
 from Constructor.CreateTeamObject import Team, TeamMember
-from Constructor.CreateUserObjet import User
+from Constructor.CreateUserObject import User
 from Constructor.UploadCloudinary import upload_image
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
