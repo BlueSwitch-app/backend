@@ -1,1 +1,7 @@
-Flask==3.0.3
+flask-cors==4.0.0
+pymongo==4.11.1
+waitress==2.1.2
+cloudinary>=1.44.1
+pydantic==2.9.2
+orjson==3.10.7
+certifi>=2024.2.2
