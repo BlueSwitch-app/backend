@@ -1,27 +1,28 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from .NewDeviceObject import Producto
-from .CreateTeamObject import Team, TeamMember
-from .CreateUserObject import User
-from .UploadCloudinary import upload_image
+from NewDeviceObject import Producto
+from CreateTeamObject import Team, TeamMember
+from CreateUserObject import User
+from UploadCloudinary import upload_image
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import uuid
 import certifi
 from datetime import datetime
-from .CO2Analytics import CalculateCO2
-from .CO2AnalyticsperDev import CalculateCO2forDevice
-from .WattsAnalytics import calculateWatts
+from CO2Analytics import CalculateCO2
+from CO2AnalyticsperDev import CalculateCO2forDevice
+from WattsAnalytics import calculateWatts
 import math
-import os
-# Inicializar app
-app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True, methods=["GET","POST","PUT","DELETE","OPTIONS"])
 
-# Conexión a MongoDB Atlas
+# ----------------- APP -----------------
+app = Flask(__name__)
+CORS(app)
+
+# ----------------- MONGO -----------------
 uri = "mongodb+srv://crisesv4:Tanke1804.@cluster0.ejxv3jy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = MongoClient(uri, server_api=ServerApi('1'), tlsCAFile=certifi.where())
 db = client["BlueSwitchData"]
+
 userscollection = db["Users"]
 devicescollection = db["Devices"]
 discardDevicesCollection = db["discardDevices"]
@@ -33,10 +34,10 @@ teamscollection = db["Teams"]
 def hello():
     return jsonify({"mensaje": "Hello, World!"})
 
-# ----------------- USUARIOS -----------------
+# -------- USUARIOS --------
 @app.route("/create_user", methods=["POST"])
 def create_user():
-    data = request.json
+    data = request.get_json(force=True)
     try:
         user = User(
             nombre=data["nombre"],
@@ -46,13 +47,13 @@ def create_user():
             phone=data["phone"]
         )
         userscollection.insert_one(user.__dict__)
-        return jsonify({"mensaje": "Usuario creado con exito"})
+        return jsonify({"mensaje": "Usuario creado con exito"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/get_user", methods=['POST'])
 def get_user_info():
-    data = request.json
+    data = request.get_json(force=True)
     email = data.get('email')
     try:
         user = userscollection.find_one({"email": email}, {"_id": False})
@@ -62,7 +63,7 @@ def get_user_info():
 
 @app.route("/update_user", methods=["POST"])
 def update_user():
-    data = request.get_json()
+    data = request.get_json(force=True)
     email = data.get("email")
     if not email:
         return jsonify({"success": False, "error": "Email is required"}), 400
@@ -71,17 +72,17 @@ def update_user():
     result = userscollection.update_one({"email": email}, {"$set": update_fields})
 
     if result.matched_count > 0:
-        return jsonify({"success": True})
+        return jsonify({"success": True}), 200
     else:
         return jsonify({"success": False, "error": "User not found"}), 404
 
 @app.route("/upload_avatar", methods=["POST"])
 def upload_avatar():
-    data = request.get_json()
+    data = request.get_json(force=True)
     email = data.get("email")
     imageUri = data.get("imageUri")
     if not email or not imageUri:
-        return jsonify({"success": False, "error": "Email and avatar are required"}),400
+        return jsonify({"success": False, "error": "Email and avatar are required"}), 400
     
     try:
         avatar = upload_image(imageUri)
@@ -90,10 +91,10 @@ def upload_avatar():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-# ----------------- DISPOSITIVOS -----------------
+# -------- DISPOSITIVOS --------
 @app.route("/crear-device", methods=["POST"])
 def crear_producto():
-    data = request.get_json()
+    data = request.get_json(force=True)
     if not data:
         return jsonify({"mensaje": "No se recibió información"}), 400
 
@@ -123,7 +124,7 @@ def crear_producto():
 
 @app.route("/get_devices", methods=["POST"])
 def get_devices():
-    data = request.get_json()
+    data = request.get_json(force=True)
     email = data.get("email")
     team_code = data.get("team_code")
     if not email and not team_code:
@@ -135,7 +136,7 @@ def get_devices():
 
 @app.route("/update-status", methods=['PUT'])
 def update_device_status():
-    data = request.get_json()
+    data = request.get_json(force=True)
     device_id = data.get('id')
     new_status = data.get('status')
     args = data.get('argument')
@@ -167,13 +168,13 @@ def update_device_status():
             devicescollection.update_one({'stringid': device_id}, {'$set': {'favorite': new_status}})
             return jsonify({'mensaje': 'Estado actualizado correctamente'}), 200
         else:
-            return jsonify({'mensaje': 'No se ejecutó porque el argumento no es valido'}), 200
+            return jsonify({'mensaje': 'La acción no es válida'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route("/read-CO2", methods=["POST"])
 def read_CO2():
-    data = request.get_json()
+    data = request.get_json(force=True)
     email = data.get("email")
     team_code = data.get("team_code")
     if not email and not team_code:
@@ -184,7 +185,7 @@ def read_CO2():
 
 @app.route("/read_perDev", methods=['POST'])
 def read_perDev():
-    data = request.json
+    data = request.get_json(force=True)
     devices = data.get("data", [])
     try:
         CO2 = CalculateCO2forDevice(devices)
@@ -194,11 +195,11 @@ def read_perDev():
 
 @app.route("/readstatisdics_peruser", methods=["POST"])
 def statistics_per_user():
-    data = request.get_json()
+    data = request.get_json(force=True)
     email = data.get("email")
     team_code = data.get("team_code")
     if not email or not team_code:
-        return jsonify({"success": False, "error": "Email and team_code are required"}),400
+        return jsonify({"success": False, "error": "Email and team_code are required"}), 400
     statistics = list(devicescollection.find({"email": email, "team": team_code}, {"_id": False}))
     if not statistics:
         return jsonify({"success": True, "data": {"CO2": 0, "numdevices": 0, "trees": 0, "watts": 0}}), 200
@@ -208,22 +209,22 @@ def statistics_per_user():
     trees_value = math.ceil(co2_value / 22)
     return jsonify({"success": True, "data": {"CO2": co2_value, "numdevices": len(statistics), "trees": trees_value, "watts": Watts if Watts else 0}}), 200
 
-# ----------------- EQUIPOS -----------------
+# -------- EQUIPOS --------
 @app.route('/create_team', methods=['POST'])
 def create_team():
-    data = request.json
+    data = request.get_json(force=True)
     team_name = data['team_name']
     user_email = data['email']
     try:
         team = Team(Name=team_name, Members=[TeamMember(email=user_email, role="admin")])
         teamscollection.insert_one(team.model_dump())
-        return jsonify({"mensaje": "Equipo creado con éxito", "team": team.dict()})
+        return jsonify({"mensaje": "Equipo creado con éxito", "team": team.dict()}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 @app.route('/join_team', methods=['POST'])
 def join_team():
-    data = request.json
+    data = request.get_json(force=True)
     team_name = data['team_name']
     user_email = data['email']
     team_code = data['team_code']
@@ -238,7 +239,7 @@ def join_team():
 
 @app.route("/read_teams", methods=['POST'])
 def read_teams():
-    data = request.json
+    data = request.get_json(force=True)
     user_email = data['email']
     teams_cursor = teamscollection.find({'Members.email': user_email})
     teams = []
@@ -251,7 +252,7 @@ def read_teams():
 
 @app.route("/get_members", methods=['POST'])
 def get_members():
-    data = request.json
+    data = request.get_json(force=True)
     team_code = data['team_code']
     if not team_code:
         return jsonify({"mensaje": "El código del equipo es requerido"}), 400
@@ -262,7 +263,7 @@ def get_members():
 
 @app.route("/update_members", methods=['POST'])
 def update_members():
-    data = request.json
+    data = request.get_json(force=True)
     team_code = data['teamcode']
     user_email = data['email']
     mode = data['action']
@@ -282,7 +283,7 @@ def update_members():
 
 @app.route("/delete_team", methods=['POST'])
 def delete_team():
-    data = request.json
+    data = request.get_json(force=True)
     team_code = data['teamcode']
     if not team_code:
         return jsonify({"mensaje": "El código del equipo es requerido"}), 400
@@ -291,7 +292,7 @@ def delete_team():
 
 @app.route("/leave_team", methods=['POST'])
 def leave_team():
-    data = request.json
+    data = request.get_json(force=True)
     user_email = data['email']
     team_code = data['teamcode']
     teamscollection.update_one({'StringId': team_code}, {'$pull': {'Members':{'email': user_email}}})
@@ -302,7 +303,11 @@ def leave_team():
     devicescollection.update_many({"email": user_email, "team": team_code}, {"$set": {"team": "no_team"}})
     return jsonify({"mensaje": "El usuario ha dejado el equipo"}), 200
 
-# ----------------- MAIN -----------------
-if __name__ == "__main__":
-    from waitress import serve
-    serve(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+# ----------------- ERROR HANDLER -----------------
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({"error": "Ruta no encontrada"}), 404
+
+# ----------------- EXPORT APP -----------------
+# Para serverless Vercel
+app = app
