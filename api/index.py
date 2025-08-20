@@ -16,7 +16,7 @@ import math
 import os
 # Inicializar app
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True, methods=["GET","POST","PUT","DELETE","OPTIONS"])
 
 # Conexión a MongoDB Atlas
 uri = "mongodb+srv://crisesv4:Tanke1804.@cluster0.ejxv3jy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
